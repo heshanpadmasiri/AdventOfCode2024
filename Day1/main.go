@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -15,18 +14,28 @@ type Data struct {
 }
 
 func main() {
-	inputFilePath := "input1.txt"
+	inputFilePath := "input2.txt"
 	data, err := readInput(inputFilePath)
 	if err != nil {
 		fmt.Println("Error reading input:", err)
 		return
 	}
-    sort.Ints(data.lhs)
-    sort.Ints(data.rhs)
+    // sort.Ints(data.lhs)
+    // sort.Ints(data.rhs)
 
-    sum := 0
+    // sum := 0
+    // for i := 0; i < len(data.lhs); i++ {
+    //     sum +=  abs(data.lhs[i] - data.rhs[i])
+    // }
+    // fmt.Println(sum)
+    memo := make(map[int]int)
+    for i := 0; i < len(data.rhs); i++ {
+        val := data.rhs[i]
+		memo[val]++
+    }
+    sum := 0;
     for i := 0; i < len(data.lhs); i++ {
-        sum +=  abs(data.lhs[i] - data.rhs[i])
+        sum += data.lhs[i] * memo[data.lhs[i]]
     }
     fmt.Println(sum)
 }
