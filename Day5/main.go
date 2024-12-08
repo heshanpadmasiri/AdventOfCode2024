@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -22,12 +23,28 @@ func main() {
 	}
 	sum := 0
 	for _, update := range data.updates {
-		if isValid(data.ordering, update) {
-			middleValue := update[len(update) / 2]
+		if !isValid(data.ordering, update) {
+			vals := reOrder(data.ordering, update)
+			middleValue := vals[len(update) / 2]
 			sum += middleValue
 		}
 	}
 	fmt.Println(sum)
+}
+
+func reOrder(ordering map[int][]int, update []int) []int {
+	result := make([]int, len(update))
+	copy(result, update)
+	sort.Slice(result, func(i, j int) bool {
+		// i < j ?
+		for _, each := range ordering[result[i]] {
+			if each == result[j] {
+				return true
+			}
+		}
+		return false
+	})
+	return result
 }
 
 func isValid(ordering map[int][]int, update []int) bool {
