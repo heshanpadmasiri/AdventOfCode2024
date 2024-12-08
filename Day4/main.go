@@ -9,56 +9,61 @@ import (
 
 func main() {
 	inputFilePath := "input2.txt"
-	data, err := readInput(inputFilePath)
+	lines, err := readInput(inputFilePath)
 	if err != nil {
 		fmt.Println("Error reading input:", err)
 		return
 	}
-	lines := allHorizontalLines(data)
-	lines = append(lines, allVerticalLines(data)...)
-	lines = append(lines, allDiagonalLines(data)...)
-	forward := regexp.MustCompile(`XMAS`)
-	backward := regexp.MustCompile(`SAMX`)
 	sum := 0
-	for _, line := range lines {
-		sum += countOverlappingMatches(forward, line)
-		sum += countOverlappingMatches(backward, line)
+	for y := 0; y < len(lines); y++ {
+		for x := 0; x < len(lines[y]); x++ {
+			if lines[y][x] == 'M' || lines[y][x] == 'S' {
+				if isMatch(lines, x, y) {
+					// for i := 0; i < 3; i++ {
+					// 	for j := 0; j < 3; j++ {
+					// 		fmt.Print(string(lines[y+i][x+j]))
+					// 	}
+					// 	fmt.Println()
+					// }
+					// fmt.Println()
+					sum++
+				}
+			}
+		}
 	}
 	fmt.Println(sum)
 }
 
-type state struct {
-	x_count, m_count, a_count, s_count                     int
-	last_x_index, last_m_index, last_a_index, last_s_index int
-}
-
-func initMemo(s string) []state {
-	memo := make([]state, len(s))
-	for i := len(s) - 1; i >= 0; i-- {
-		var prevMemo state
-		if i == len(s)-1 {
-			prevMemo = state{}
-		} else {
-			prevMemo = memo[i+1]
-		}
-		newSate := state{x_count: prevMemo.x_count, m_count: prevMemo.m_count, a_count: prevMemo.a_count, s_count: prevMemo.s_count, last_x_index: prevMemo.last_x_index, last_m_index: prevMemo.last_m_index, last_a_index: prevMemo.last_a_index, last_s_index: prevMemo.last_s_index}
-		switch s[i] {
-		case 'X':
-			newSate.x_count++
-			newSate.last_x_index = i
-		case 'M':
-			newSate.m_count++
-			newSate.last_m_index = i
-		case 'A':
-			newSate.a_count++
-			newSate.last_a_index = i
-		case 'S':
-			newSate.s_count++
-			newSate.last_s_index = i
-		}
-		memo[i] = newSate
+func isMatch(lines[] string, x, y int) bool {
+	width := len(lines[0])
+	if x + 2 >= width || y + 2 >= len(lines) {
+		return false
 	}
-	return memo
+	if lines[y+1][x+1] != 'A' {
+		return false
+	}
+	var e1 byte;
+	if lines[y][x] == 'M' {
+		e1 = 'S'
+	} else {
+		e1 = 'M'
+	}
+	if lines[y+2][x+2] != e1 {
+		return false
+	}
+
+	var e2 byte;
+	if lines[y][x+2] == 'M' {
+		e2 = 'S'
+	} else if lines[y][x+2] == 'S' {
+		e2 = 'M'
+	} else {
+		return false
+	}
+	if lines[y+2][x] != e2 {
+		return false
+	}
+	return true
 }
 
 func countOverlappingMatches(re *regexp.Regexp, s string) int {
