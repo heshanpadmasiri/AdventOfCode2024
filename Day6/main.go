@@ -20,10 +20,10 @@ const (
 )
 
 type State struct {
-	obstructions []Pos
+	obstructions map[Pos]bool
 	guardPos Pos
 	direction Direction
-	visited map[Pos]bool
+	visited map[Pos][]Direction
 	bounds Pos
 }
 
@@ -34,34 +34,84 @@ func main() {
 		fmt.Println("Error reading input:", err)
 		return
 	}
-	nextState, shouldContinue := tick(state)
-	for shouldContinue {
-		nextState, shouldContinue = tick(nextState)
-	}
 	sum := 0
-	for _, visited := range nextState.visited {
-		if visited {
-			sum++
+	for y := 0; y < state.bounds.y; y++ {
+		for x := 0; x < state.bounds.x; x++ {
+			pos := Pos{x, y}
+			if pos != state.guardPos && !isObstructed(pos, state) {
+				newState := addObstructions(state, pos)
+				if isLoop(newState) {
+					sum++
+				}
+			}
 		}
 	}
 	fmt.Println(sum)
 }
 
-func tick(currentState State) (State, bool) {
+type Cnt int
+
+const (
+	Continue Cnt = iota
+	Stop
+	Loop
+)
+
+func addObstructions(state State, pos Pos) State {
+	newObstructions := make(map[Pos]bool)
+	for k, v := range state.obstructions {
+		newObstructions[k] = v
+	}
+	newObstructions[pos] = true
+
+	newVisited := make(map[Pos][]Direction)
+	for k, v := range state.visited {
+		directionsCopy := make([]Direction, len(v))
+		copy(directionsCopy, v)
+		newVisited[k] = directionsCopy
+	}
+	return State{
+		obstructions: newObstructions,
+		guardPos: state.guardPos,
+		direction: state.direction,
+		visited: newVisited,
+		bounds: state.bounds,
+	}
+}
+
+func isLoop(state State) bool {
+	nextState, cnt := tick(state)
+	for cnt == Continue {
+		nextState, cnt = tick(nextState)
+	}
+	return cnt == Loop
+}
+
+func tick(currentState State) (State, Cnt) {
 	nextPos := nextStep(currentState.guardPos, currentState.direction)
 	nextDirection := currentState.direction
 	if !posInBounds(nextPos, currentState) {
-		return currentState, false
+		return currentState, Stop
 	}
-	if isObstructed(nextPos, currentState) {
-		nextDirection = (currentState.direction + 1) % 4
+	count := 0
+	for isObstructed(nextPos, currentState) {
+		count++
+		if count > 4 {
+			fmt.Print("Error: guard is stuck at ", currentState.guardPos, " with direction ", currentState.direction, "\n")	
+		}
+		nextDirection = (nextDirection + 1) % 4
 		nextPos = nextStep(currentState.guardPos, nextDirection)
 		if !posInBounds(nextPos, currentState) {
-			return currentState, false
+			return currentState, Stop
 		}
 	}
 	visited := currentState.visited
-	visited[nextPos] = true
+	for _, direction := range visited[nextPos] {
+		if direction == nextDirection {
+			return currentState, Loop
+		}
+	}
+	visited[nextPos] = append(visited[nextPos], nextDirection)
 	nextState := State{
 		obstructions: currentState.obstructions,
 		guardPos: nextPos,
@@ -69,16 +119,11 @@ func tick(currentState State) (State, bool) {
 		visited: visited,
 		bounds: currentState.bounds,
 	}
-	return nextState, true
+	return nextState, Continue
 }
 
 func isObstructed(pos Pos, state State) bool {
-	for _, obstruction := range state.obstructions {
-		if pos == obstruction {
-			return true
-		}
-	}
-	return false
+	return state.obstructions[pos]
 }
 
 func posInBounds(pos Pos, state State) bool {
@@ -112,6 +157,7 @@ func readInput(inputFilePath string) (State, error) {
 	scanner := bufio.NewScanner(file)
 	y := 0
 	XMax := 0
+	data.obstructions = make(map[Pos]bool)
 	for scanner.Scan() {
 		line := scanner.Text()
         if line == "" {
@@ -134,7 +180,7 @@ func readInput(inputFilePath string) (State, error) {
 					data.guardPos = currentPos
 					data.direction = West
 				case '#':
-					data.obstructions = append(data.obstructions, currentPos)
+					data.obstructions[currentPos] = true
 				case '.':
 					// Do nothing
 				default:
@@ -146,8 +192,8 @@ func readInput(inputFilePath string) (State, error) {
 
 	data.bounds = Pos{XMax, y}
 
-	data.visited = make(map[Pos]bool)
-	data.visited[data.guardPos] = true
+	data.visited = make(map[Pos][]Direction)
+	data.visited[data.guardPos] = []Direction{data.direction}
 	if err := scanner.Err(); err != nil {
 		return State{}, err
 	}
