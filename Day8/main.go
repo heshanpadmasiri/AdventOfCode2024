@@ -32,12 +32,12 @@ func main() {
 	points := make([]point, 0)
 	for _, antennas := range inputs.antennas {
 		// fmt.Println(antenna)
-		newPoints := resonancePoints(antennas)
+		newPoints := resonancePoints(antennas, inputs.X, inputs.Y)
 		newPoints = removeInvalidPoints(newPoints, inputs.X, inputs.Y)
-		// plotPoints(newPoints, inputs.X, inputs.Y)
 		points = append(points, newPoints...)
 	}
 	points = removeDuplicatePoints(points)
+	// plotPoints(points, inputs.X, inputs.Y)
 	fmt.Println(len(points))
 }
 
@@ -69,13 +69,13 @@ func removeDuplicatePoints(points []point) []point {
 	return uniquePoints
 }
 
-func resonancePoints(antennas []point) []point {
+func resonancePoints(antennas []point, X, Y int) []point {
 	var result []point
 	// Get all pairwise combinations
 	for i := 0; i < len(antennas); i++ {
 		for j := i + 1; j < len(antennas); j++ {
 			// Get anti-nodes for this pair and add them to result
-			antiNodePoints := antiNodes(antennas[i], antennas[j])
+			antiNodePoints := antiNodes(antennas[i], antennas[j], X, Y)
 			result = append(result, antiNodePoints...)
 		}
 	}
@@ -83,20 +83,25 @@ func resonancePoints(antennas []point) []point {
 	return result
 }
 
-func antiNodes(a1, a2 point) []point {
-	midPoint := point{X: (a1.X + a2.X) / 2, Y: (a1.Y + a2.Y) / 2}
-	v1 := point{X: a1.X - midPoint.X, Y: a1.Y - midPoint.Y}
-	v2 := point{X: a2.X - midPoint.X, Y: a2.Y - midPoint.Y}
-	p1 := point{X: a1.X + v1.X*2, Y: a1.Y + v1.Y*2}
-	p2 := point{X: a2.X + v2.X*2, Y: a2.Y + v2.Y*2}
-	antiNodes := make([]point, 0)
-	if p1 != a1 && p1 != a2 {
-		antiNodes = append(antiNodes, p1)
+func antiNodes(a1, a2 point, X, Y int) []point {
+	y_1 := a1.Y
+	y_2 := a2.Y
+	x_1 := a1.X
+	x_2 := a2.X
+	var result []point
+	for x := 0; x < X; x++ {
+		x_bar := float64(x)
+		a_1 := y_1 * (x_bar - x_2)
+		a_2 := y_2 * (x_bar - x_1)
+		a := a_1 - a_2
+		b := x_1 - x_2
+		y_bar := a / b
+		point := point{X: x_bar, Y: y_bar}
+		if isPointValid(point, X, Y) {
+			result = append(result, point)
+		}
 	}
-	if p2 != a1 && p2 != a2 {
-		antiNodes = append(antiNodes, p2)
-	}
-	return antiNodes
+	return result
 }
 
 func readInput(inputFilePath string) (input, error) {
@@ -139,11 +144,14 @@ func readInput(inputFilePath string) (input, error) {
 func removeInvalidPoints(points []point, maxX, maxY int) []point {
 	var validPoints []point
 	for _, p := range points {
-		// Check bounds and ensure coordinates are whole numbers
-		if p.X >= 0 && p.X < float64(maxX) && p.Y >= 0 && p.Y < float64(maxY) &&
-			float64(int(p.X)) == p.X && float64(int(p.Y)) == p.Y {
+		if isPointValid(p, maxX, maxY) {
 			validPoints = append(validPoints, p)
 		}
 	}
 	return validPoints
+}
+
+func isPointValid(p point, maxX, maxY int) bool {
+	return p.X >= 0 && p.X < float64(maxX) && p.Y >= 0 && p.Y < float64(maxY) &&
+		float64(int(p.X)) == p.X && float64(int(p.Y)) == p.Y
 }
