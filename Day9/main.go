@@ -9,6 +9,11 @@ type block int
 
 const empty block = -1
 
+type blockMemo struct {
+	ptr int
+	len int
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Please provide input file path as first argument")
@@ -20,13 +25,37 @@ func main() {
 		fmt.Println("Error reading input:", err)
 		return
 	}
-	blocks := parseInput(input)
-	c, emptyPtr, blockPtr := compact(blocks, getNextEmptyPtr(blocks, 0), getNextBlockPtr(blocks, len(blocks)-1))
-	for c {
-		validateState(blocks, emptyPtr, blockPtr)
-		c, emptyPtr, blockPtr = compact(blocks, emptyPtr, blockPtr)
+	blocks, freeSpaces, files := parseInput(input)
+	for i := len(files) - 1; i >= 0; i-- {
+		compact2(blocks, i, freeSpaces, files)
 	}
+	// printState(blocks)
 	fmt.Println(checkSum(blocks))
+}
+
+func compact2(blocks []block, fileIndex int, freeSpaces, files []blockMemo) {
+	targetIndex := -1
+	for i := 0; i < len(freeSpaces); i++ {
+		if freeSpaces[i].ptr > files[fileIndex].ptr {
+			return
+		}
+		if freeSpaces[i].len >= files[fileIndex].len {
+			targetIndex = i
+			break
+		}
+	}
+	if targetIndex == -1 {
+		return
+	}
+	size := files[fileIndex].len
+	freeBlockPtr := freeSpaces[targetIndex].ptr
+	targetPtr := files[fileIndex].ptr
+	for i := 0; i < size; i++ {
+		blocks[freeBlockPtr+i] = blocks[targetPtr+i]
+		blocks[targetPtr+i] = empty
+	}
+	freeSpaces[targetIndex].len -= size
+	freeSpaces[targetIndex].ptr += size
 }
 
 func validateState(blocks []block, emptyPtr, blockPtr int) {
@@ -96,24 +125,30 @@ func compact(blocks []block, emptyPtr, blockPtr int) (bool, int, int) {
 	return true, newEmptyPtr, newBlockPtr
 }
 
-func parseInput(input []uint8) []block {
+func parseInput(input []uint8) ([]block, []blockMemo, []blockMemo) {
 	blocks := make([]block, 0)
+	freeSpaces := make([]blockMemo, 0)
+	files := make([]blockMemo, 0)
 	blockId := 0
 	isBlock := true
+	index := 0
 	for _, v := range input {
 		if isBlock {
 			for i := 0; i < int(v); i++ {
 				blocks = append(blocks, block(blockId))
 			}
+			files = append(files, blockMemo{ptr: index, len: int(v)})
 			blockId++
 		} else {
 			for i := 0; i < int(v); i++ {
 				blocks = append(blocks, empty)
 			}
+			freeSpaces = append(freeSpaces, blockMemo{ptr: index, len: int(v)})
 		}
 		isBlock = !isBlock
+		index += int(v)
 	}
-	return blocks
+	return blocks, freeSpaces, files
 }
 
 func printState(blocks []block) {
