@@ -25,6 +25,17 @@
                 "input1.txt"
             ],
             "cwd": "${workspaceFolder}/Day8"
+        },
+        {
+            "name": "Debug day 9",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/Day9/main.go",
+            "args": [
+                "input1.txt"
+            ],
+            "cwd": "${workspaceFolder}/Day9"
         }
     ]
 }
