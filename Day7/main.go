@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -33,7 +34,9 @@ func main() {
 }
 
 func isValid(input input) bool {
-	return isValidInner(input.target, input.values[0], 0, input.values[1:], add) || isValidInner(input.target, input.values[0], 1, input.values[1:], mul)
+	return isValidInner(input.target, input.values[0], 0, input.values[1:], add) ||
+		isValidInner(input.target, input.values[0], 1, input.values[1:], mul) ||
+		isValidInner(input.target, input.values[0], 0, input.values[1:], concat)
 }
 
 func isValidInner(target, current, currentSum int, remainingValues []int, operation operation) bool {
@@ -42,6 +45,17 @@ func isValidInner(target, current, currentSum int, remainingValues []int, operat
 		value += current
 	} else if operation == mul {
 		value *= current
+	} else if operation == concat {
+		currentStr := fmt.Sprint(current)
+		currentSumStr := fmt.Sprint(currentSum)
+		value, _ = strconv.Atoi(currentSumStr + currentStr)
+		// var digits int
+		// if current != 0 {
+		// 	digits = int(math.Floor(math.Log10(float64(current)))) + 1
+		// } else {
+		// 	digits = 1
+		// }
+		// value = currentSum*int(math.Pow10(digits)) + current
 	}
 	if value > target {
 		return false
@@ -49,7 +63,9 @@ func isValidInner(target, current, currentSum int, remainingValues []int, operat
 	if len(remainingValues) == 0 {
 		return value == target
 	}
-	return isValidInner(target, remainingValues[0], value, remainingValues[1:], add) || isValidInner(target, remainingValues[0], value, remainingValues[1:], mul)
+	return isValidInner(target, remainingValues[0], value, remainingValues[1:], add) ||
+		isValidInner(target, remainingValues[0], value, remainingValues[1:], mul) ||
+		isValidInner(target, remainingValues[0], value, remainingValues[1:], concat)
 }
 
 type operation int
@@ -57,6 +73,7 @@ type operation int
 const (
 	add operation = iota
 	mul
+	concat
 )
 
 func readInput(inputFilePath string) ([]input, error) {
