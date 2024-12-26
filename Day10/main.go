@@ -15,7 +15,9 @@ type height uint8
 
 type grid [][]height
 
-type memo map[point][]point
+type nTrailsMemo map[point][]point
+
+type scoreMemo map[point]int
 
 func main() {
 	if len(os.Args) < 2 {
@@ -29,14 +31,30 @@ func main() {
 		return
 	}
 	sum := 0
-	memo := make(memo)
+	memo := make(scoreMemo)
 	for _, start := range startPositions(input) {
-		sum += numberOfTrails(input, memo, start)
+		sum += score(input, memo, start)
 	}
 	fmt.Println(sum)
 }
 
-func numberOfTrails(grid grid, memo memo, currentPosition point) int {
+func score(grid grid, memo scoreMemo, currentPosition point) int {
+	if val, exists := memo[currentPosition]; exists {
+		return val
+	}
+	currentHeight := grid[currentPosition.Y][currentPosition.X]
+	if currentHeight == 9 {
+		return 1
+	}
+	sum := 0
+	for _, move := range possibleMoves(grid, currentPosition) {
+		sum += score(grid, memo, move)
+	}
+	memo[currentPosition] = sum
+	return sum
+}
+
+func numberOfTrails(grid grid, memo nTrailsMemo, currentPosition point) int {
 	reachable := reachableEnds(grid, memo, currentPosition)
 	// Create a map to track unique points
 	uniquePoints := make(map[point]bool)
@@ -46,7 +64,7 @@ func numberOfTrails(grid grid, memo memo, currentPosition point) int {
 	return len(uniquePoints)
 }
 
-func reachableEnds(grid grid, memo memo, currentPosition point) []point {
+func reachableEnds(grid grid, memo nTrailsMemo, currentPosition point) []point {
 	currentHeight := grid[currentPosition.Y][currentPosition.X]
 	if currentHeight == 9 {
 		return []point{currentPosition}
