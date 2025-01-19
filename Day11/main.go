@@ -8,6 +8,11 @@ import (
 )
 type state []int;
 
+type memoState struct {
+	value int
+	depth int
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Please provide input file path as first argument")
@@ -19,10 +24,40 @@ func main() {
 		fmt.Println("Error reading input:", err)
 		return
 	}
-	for i := 0; i < 25; i++ {
-		input = tick(input)
+	n := 75
+	sum := 0
+	memo := make(map[memoState]int)
+	for _, stone := range input {
+		sum += nStonesAfter(stone, n, memo)
 	}
-	fmt.Println(len(input))
+	fmt.Println(sum)
+}
+
+func nStonesAfter(value, after int, memo map[memoState]int) int {
+	if after == 0 {
+		return 1
+	}
+	memoState := memoState{value, after}
+	if result, ok := memo[memoState]; ok {
+		return result
+	}
+	result := 0
+	for _, next := range nextValue(value) {
+		result += nStonesAfter(next, after - 1, memo)
+	}
+	memo[memoState] = result
+	return result
+}
+
+func nextValue(value int) []int {
+	if value == 0 {
+		return []int{1}
+	} else if hasEvenDigits(value) {
+		firstHalf, secondHalf := splitEvenDigits(value)
+		return []int{firstHalf, secondHalf}
+	} else {
+		return []int{value * 2024}
+	}
 }
 
 func tick(stones state) state {
@@ -54,7 +89,6 @@ func countDigits(n int) int {
 
 func splitEvenDigits(n int) (int, int) {
 	digits := countDigits(n)
-
 	divisor := 1
 	for i := 0; i < digits/2; i++ {
 		divisor *= 10
@@ -62,7 +96,6 @@ func splitEvenDigits(n int) (int, int) {
 
 	firstHalf := n / divisor
 	secondHalf := n % divisor
-
 	return firstHalf, secondHalf
 }
 
